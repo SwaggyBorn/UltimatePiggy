@@ -12,10 +12,10 @@ class DataBaseConfig {
 	companion object{
 		const val databaseVersion = 1
 		const val databaseName = "ultimate_piggy.db"
-		val tableList : Array<KClass<*>> by lazy {
-			val list = Array<KClass<*>>()
-				list.add(BaseActivity::class)
-				list
-		}
+//		val tableList : Array<KClass<*>> by lazy {
+//			val list = Array<KClass<*>>()
+//				list.add(BaseActivity::class)
+//				list
+//		}
 	}
 }

@@ -10,10 +10,10 @@ import com.bornproduct.ultimatepiggy.basic.database.DataBaseConfig.Companion.dat
  * 数据库
  * Created by Born on 2022/04/17
  */
-@Database(
-  version = DataBaseConfig.databaseVersion,
-  entities = DataBaseConfig.tableList
-)
+//@Database(
+//  version = DataBaseConfig.databaseVersion,
+//  entities = DataBaseConfig.tableList
+//)
 abstract class AppDatabase : RoomDatabase() {
 
   companion object {
