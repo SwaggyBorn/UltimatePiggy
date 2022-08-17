@@ -1,4 +1,4 @@
-package com.bornproduct.ultimatepiggy.database
+package com.bornproduct.ultimatepiggy.basic.database
 
 import androidx.room.*
 import androidx.sqlite.db.SimpleSQLiteQuery

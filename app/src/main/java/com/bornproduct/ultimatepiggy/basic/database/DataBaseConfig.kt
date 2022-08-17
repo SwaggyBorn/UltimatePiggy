@@ -1,7 +1,5 @@
-package com.bornproduct.ultimatepiggy.database
+package com.bornproduct.ultimatepiggy.basic.database
 
-import android.util.ArraySet
-import androidx.room.Entity
 import com.bornproduct.ultimatepiggy.basic.BaseActivity
 import kotlin.reflect.KClass
 
