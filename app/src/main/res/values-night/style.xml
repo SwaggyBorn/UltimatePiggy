@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+  <!-- Activity无标题栏+全屏 开始-->
+  <style name="NoTitle" parent="Theme.AppCompat.Light.NoActionBar">
+    <item name="android:windowNoTitle">true</item>
+    <!-- 兼容API 7-->
+    <item name="android:windowActionBar">false</item>
+    <!-- Activity全屏 开始-->
+    <item name="android:windowFullscreen">true</item>
+    <item name="android:windowContentOverlay">@null</item>
+  </style>
+  <!-- Activity无标题栏 结束-->
+
+</resources>
