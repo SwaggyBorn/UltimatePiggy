@@ -15,6 +15,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.UltimatePiggy" >
 
+        <provider
+            android:authorities="com.bornproduct.ultimatepiggy.fileprovider"
+            android:name="androidx.core.content.FileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true"
+           >
+
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/app_files" />
+        </provider>
 
         <activity
             android:name=".function.sexypiggy.SexyPiggyMainActivity"

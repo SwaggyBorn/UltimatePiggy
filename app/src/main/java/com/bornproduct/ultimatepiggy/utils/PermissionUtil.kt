@@ -7,14 +7,13 @@ import com.permissionx.guolindev.callback.RequestCallback
 
 object PermissionUtil {
 
-  fun getReadWritePermission(activity : BaseActivity){
+  fun getReadWritePermission(activity: BaseActivity, allGrantedListener: (Boolean) -> Unit = {}) {
     PermissionX.init(activity)
       .permissions(
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.READ_EXTERNAL_STORAGE
-      ).request { allGranted, grantedList, deniedList ->
-
-
+      ).request { allGranted, _, _ ->
+        allGrantedListener.invoke(allGranted)
       }
   }
 
