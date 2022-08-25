@@ -18,8 +18,22 @@ abstract class BaseActivity() : AppCompatActivity(), BaseView, BaseLifeCycleOwne
 
   }
 
+  /**
+   * Tag
+   */
   override fun getTag(): String = this::class.java.simpleName
 
+  /**
+   * 布局id
+   */
   abstract fun getLayoutId(): Int
+
+  /**
+   * 弹吐司
+   * @param content 内容
+   */
+  fun showToast(content: String) {
+
+  }
 
 }
