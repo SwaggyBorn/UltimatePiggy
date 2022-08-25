@@ -15,7 +15,7 @@ import java.io.File
 
 
 
-class PictureSaveUtil(private val context: Context) {
+class PictureSdCardUtil(private val context: Context) {
 
   companion object {
     private const val TAG = "PictureSaveUtil"

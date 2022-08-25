@@ -4,7 +4,7 @@ import android.os.Bundle
 import com.bornproduct.ultimatepiggy.R
 import com.bornproduct.ultimatepiggy.basic.BaseActivity
 import com.bornproduct.ultimatepiggy.utils.PermissionUtil
-import com.bornproduct.ultimatepiggy.utils.PictureSaveUtil
+import com.bornproduct.ultimatepiggy.utils.PictureSdCardUtil
 
 class SexyPiggyMainActivity : BaseActivity() {
   override fun getLayoutId(): Int {
@@ -29,7 +29,7 @@ class SexyPiggyMainActivity : BaseActivity() {
         finish()
       }else{
         //有权限了就建立相册并创建默认图
-        PictureSaveUtil(this).checkFileDir()
+        PictureSdCardUtil(this).checkFileDir()
       }
     }
   }
