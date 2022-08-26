@@ -1,4 +1,4 @@
-package com.bornproduct.ultimatepiggy.utils
+package com.bornproduct.ultimatepiggy.function.sexypiggy.utils
 
 import android.content.ContentUris
 import android.content.ContentValues
@@ -10,15 +10,14 @@ import android.os.Environment
 import android.os.Environment.DIRECTORY_PICTURES
 import android.provider.MediaStore
 import com.bornproduct.ultimatepiggy.basic.log.Logger
+import com.bornproduct.ultimatepiggy.function.sexypiggy.bean.PictureInfoBean
 import java.io.File
-
-
-
+import java.util.Vector
 
 class PictureSdCardUtil(private val context: Context) {
 
   companion object {
-    private const val TAG = "PictureSaveUtil"
+    private const val TAG = "PictureSdCardUtil"
     const val PICTURE_FILE_DIR_NAME = "SexyPiggy"
     const val MAX_DEAL_SIZE = 1024
     const val DEFAULT_PICTURE_NAME = "defaultPicture"
@@ -71,18 +70,15 @@ class PictureSdCardUtil(private val context: Context) {
    */
   private fun createDefaultFile() {
     val contentUri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
-    val contentValues = ContentValues()
-    val dateTaken = System.currentTimeMillis()
-    contentValues.put(MediaStore.Images.Media.DATE_TAKEN, dateTaken);
-    contentValues.put(MediaStore.Images.Media.IS_PRIVATE, 1);
-    contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, DEFAULT_PICTURE_NAME);
-    contentValues.put(MediaStore.Images.Media.MIME_TYPE, MIME_TYPE);
-    contentValues.put(
-      MediaStore.Images.Media.RELATIVE_PATH,
-      "$DIRECTORY_PICTURES/$PICTURE_FILE_DIR_NAME"
-    );
-    contentValues.put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis());
-    contentValues.put(MediaStore.Images.Media.DATE_MODIFIED, System.currentTimeMillis());
+    val contentValues = ContentValues().apply {
+      put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis());
+      put(MediaStore.Images.Media.IS_PRIVATE, 1);
+      put(MediaStore.Images.Media.DISPLAY_NAME, DEFAULT_PICTURE_NAME);
+      put(MediaStore.Images.Media.MIME_TYPE, MIME_TYPE);
+      put(MediaStore.Images.Media.RELATIVE_PATH, "$DIRECTORY_PICTURES/$PICTURE_FILE_DIR_NAME")
+      put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis());
+      put(MediaStore.Images.Media.DATE_MODIFIED, System.currentTimeMillis());
+    }
     val insert = context.contentResolver.insert(contentUri, contentValues);
     try {
       val outputStream = insert?.let { context.contentResolver.openOutputStream(it) };
@@ -97,7 +93,9 @@ class PictureSdCardUtil(private val context: Context) {
   /**
    * 搜索文件夹下的所有图片路径
    */
-  fun getAllImgPath() {
+  fun getAllImgPathUri(): Vector<PictureInfoBean> {
+
+    val returnVector = Vector<PictureInfoBean>()
 
     // 先拿到图片数据表的uri
     val tableUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
@@ -108,37 +106,46 @@ class PictureSdCardUtil(private val context: Context) {
       MediaStore.Video.Media.DATA,
       MediaStore.Video.Media.DISPLAY_NAME,
       MediaStore.Video.Media.MIME_TYPE,
-      MediaStore.Video.Media.BUCKET_DISPLAY_NAME
+      MediaStore.Video.Media.BUCKET_DISPLAY_NAME,
+      MediaStore.Video.Media.SIZE,
+      MediaStore.Video.Media.DATE_ADDED,
+      MediaStore.Video.Media.DATE_MODIFIED,
     )
     val selection = MediaStore.Images.Media.BUCKET_DISPLAY_NAME + "= ?";
-    // 条件参数 ，因为是查询全部图片，传null
+    //条件参数 ，因为是查询全部图片，传null
     val args = arrayOf(PICTURE_FILE_DIR_NAME)
-    // 排序：按id倒叙
+    //排序：按id倒叙
     val order = MediaStore.Files.FileColumns._ID + " DESC"
-    // 开始查询
-    val cursor = context.contentResolver.query(tableUri, projection, selection, args, order);
-    if (cursor != null) {
+    //开始查询
+    context.contentResolver.query(tableUri, projection, selection, args, order)?.let {cursor ->
       try {
-
-        // 获取id字段index
+        //获取id字段index
         val idIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
-        // 获取data字段index
+        //获取data字段index
         val dataIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)
-        // 获取文件名称字段index
+        //获取文件名称字段index
         val displayNameIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
+        //获取mimeType字段index
+        val mimeTypeIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)
+        //获取size字段index
+        val sizeIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
+        //获取文件修改时间index
+        val modifiedIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED)
 
         //循环遍历
         while (cursor.moveToNext()) {
-          val id = cursor.getLong(idIndex);
-          // 获取到每张图片的uri
-          val imageUri =
-            ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
-          // 获取到每张图片的绝对路径
-          val path = cursor.getString(dataIndex);
-          // 获取到每张图片的名称
-          val displayName = cursor.getString(displayNameIndex)
-
-          Logger.d(TAG, "搜索到图片 ：$displayName")
+          val tempId = cursor.getLong(idIndex)
+          returnVector.add(
+            PictureInfoBean(
+              id = tempId,
+              uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,tempId),
+              path = cursor.getString(dataIndex),
+              name = cursor.getString(displayNameIndex),
+              mimeType = cursor.getString(mimeTypeIndex),
+              size = cursor.getLong(sizeIndex),
+              modifiedTime = cursor.getLong(modifiedIndex)
+            )
+          )
         }
       } catch (e: Exception) {
         Logger.e(TAG, "搜索图片异常 ：${e.message}")
@@ -146,5 +153,8 @@ class PictureSdCardUtil(private val context: Context) {
         cursor.close();
       }
     }
+
+
+    return returnVector
   }
 }

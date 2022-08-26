@@ -28,7 +28,7 @@
         </provider>
 
         <activity
-            android:name=".function.sexypiggy.SexyPiggyMainActivity"
+            android:name=".function.sexypiggy.main.SexyPiggyMainActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout"
             android:launchMode="singleTop"
             android:exported="true"

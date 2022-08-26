@@ -16,12 +16,26 @@ import java.util.concurrent.Executors
 object Logger {
 
   private val TAG by lazy { Application.getProcessName() }
-  private const val CHUNK_SIZE = 106 //设置字节数
-  private const val TOP_BORDER =
-    "╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
+  private const val CHUNK_SIZE = 200 //设置字节数
   private const val LEFT_BORDER = "║ "
-  private const val BOTTOM_BORDER =
-    "╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
+  private val TOP_BORDER: String by lazy {
+    StringBuilder("╔").let { builder ->
+      builder.apply {
+        for (i in 0..CHUNK_SIZE) {
+          append("═")
+        }
+      }
+    }.toString()
+  }
+  private val BOTTOM_BORDER: String by lazy {
+    StringBuilder("╚").let { builder ->
+      builder.apply {
+        for (i in 0..CHUNK_SIZE) {
+          append("═")
+        }
+      }
+    }.toString()
+  }
   private var debug: Boolean = true//是否打印log
   private var savesd: Boolean = false//是否存log到sd卡
   private var logDir = ""//设置文件存储目录
