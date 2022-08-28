@@ -1,6 +1,5 @@
 package com.bornproduct.ultimatepiggy.basic.log
 
-
 import android.app.Application
 import android.os.FileUtils
 import android.util.Log
@@ -10,8 +9,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-
-
 
 object Logger {
 
@@ -39,7 +36,7 @@ object Logger {
   private var debug: Boolean = true//是否打印log
   private var savesd: Boolean = false//是否存log到sd卡
   private var logDir = ""//设置文件存储目录
-  private var logSize = 2 * 1024 * 1024L//设置log文件大小 k
+  private var logSize = 5 * 1024 * 1024L//设置log文件大小 k
   private val threadPool: ExecutorService = Executors.newFixedThreadPool(1)
 
   init {
@@ -56,9 +53,9 @@ object Logger {
     val targetStackTraceElement = getTargetStackTraceElement()
     return if (targetStackTraceElement != null) {
       "print at ${targetStackTraceElement.className}" +
-          ".${targetStackTraceElement.methodName}" +
-          "(${targetStackTraceElement.fileName}" +
-          ":${targetStackTraceElement.lineNumber})"
+        ".${targetStackTraceElement.methodName}" +
+        "(${targetStackTraceElement.fileName}" +
+        ":${targetStackTraceElement.lineNumber})"
     } else {
       ""
     }
@@ -78,7 +75,6 @@ object Logger {
     }
     return targetStackTrace
   }
-
 
   private fun initLogFile() {
 //    logDir = "${FileUtils.getRootDir()}/hotapk.cn"
@@ -106,7 +102,6 @@ object Logger {
       Log.WARN -> Log.w(tag, newMsg)
       Log.ERROR -> Log.e(tag, newMsg)
     }
-
   }
 
   private fun msgFormat(msg: String): String {
@@ -126,7 +121,6 @@ object Logger {
     }
     newMsg += "\n$LEFT_BORDER\n$LEFT_BORDER\t${targetStackTraceMSg()}\n$BOTTOM_BORDER\n\t\n\t"
     return newMsg
-
   }
 
   private fun Boolean.saveToSd(tag: String, msg: String) {
@@ -152,9 +146,7 @@ object Logger {
 //      }
 //      FileUtils.appendText(File(filepath), "\r\n$tag\n$msg")
 //    }
-
   }
-
 
   /**
    * 是否打印log输出
@@ -181,7 +173,6 @@ object Logger {
   fun logSize(logSize: Long): Logger {
     Logger.logSize = logSize
     return this
-
   }
 
   /**
@@ -192,6 +183,4 @@ object Logger {
     Logger.logDir = logDir
     return this
   }
-
-
 }

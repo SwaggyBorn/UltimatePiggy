@@ -9,32 +9,21 @@ import android.net.Uri
 import android.os.Environment
 import android.os.Environment.DIRECTORY_PICTURES
 import android.provider.MediaStore
+import com.bornproduct.ultimatepiggy.basic.MainApplication
 import com.bornproduct.ultimatepiggy.basic.log.Logger
 import com.bornproduct.ultimatepiggy.function.sexypiggy.bean.PictureInfoBean
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 import java.util.Vector
 
-class PictureSdCardUtil(private val context: Context) {
+class PictureSdCardUtil(private val context: Context = MainApplication.getContext()) {
 
   companion object {
     private const val TAG = "PictureSdCardUtil"
     const val PICTURE_FILE_DIR_NAME = "SexyPiggy"
-    const val MAX_DEAL_SIZE = 1024
     const val DEFAULT_PICTURE_NAME = "defaultPicture"
-    const val MIME_TYPE = "image/png"
-  }
-
-  /**
-   *  检查目录并创建默认图
-   */
-  fun checkFileDir(): File {
-    val baseDir = File(getFileDirPath())
-    if (!baseDir.exists()) {
-      // 目录不存在 则创建
-      baseDir.mkdirs()
-      createDefaultFile()
-    }
-    return baseDir
+    const val DEFAULT_PICTURE_MIME_TYPE = "image/png"
   }
 
   /**
@@ -74,7 +63,7 @@ class PictureSdCardUtil(private val context: Context) {
       put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis());
       put(MediaStore.Images.Media.IS_PRIVATE, 1);
       put(MediaStore.Images.Media.DISPLAY_NAME, DEFAULT_PICTURE_NAME);
-      put(MediaStore.Images.Media.MIME_TYPE, MIME_TYPE);
+      put(MediaStore.Images.Media.MIME_TYPE, DEFAULT_PICTURE_MIME_TYPE);
       put(MediaStore.Images.Media.RELATIVE_PATH, "$DIRECTORY_PICTURES/$PICTURE_FILE_DIR_NAME")
       put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis());
       put(MediaStore.Images.Media.DATE_MODIFIED, System.currentTimeMillis());
@@ -90,16 +79,14 @@ class PictureSdCardUtil(private val context: Context) {
     }
   }
 
+
   /**
    * 搜索文件夹下的所有图片路径
+   * @param tableUri 资源类型Uri
    */
-  fun getAllImgPathUri(): Vector<PictureInfoBean> {
-
+  private fun getPathUri(tableUri : Uri): Vector<PictureInfoBean> {
+    checkFileDir()
     val returnVector = Vector<PictureInfoBean>()
-
-    // 先拿到图片数据表的uri
-    val tableUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-
     // 需要获取数据表中的哪几列信息
     val projection = arrayOf(
       MediaStore.Video.Media._ID,
@@ -112,7 +99,7 @@ class PictureSdCardUtil(private val context: Context) {
       MediaStore.Video.Media.DATE_MODIFIED,
     )
     val selection = MediaStore.Images.Media.BUCKET_DISPLAY_NAME + "= ?";
-    //条件参数 ，因为是查询全部图片，传null
+    //条件参数
     val args = arrayOf(PICTURE_FILE_DIR_NAME)
     //排序：按id倒叙
     val order = MediaStore.Files.FileColumns._ID + " DESC"
@@ -131,6 +118,8 @@ class PictureSdCardUtil(private val context: Context) {
         val sizeIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
         //获取文件修改时间index
         val modifiedIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED)
+        //获取文件添加的时间index
+        val addedIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
 
         //循环遍历
         while (cursor.moveToNext()) {
@@ -138,12 +127,13 @@ class PictureSdCardUtil(private val context: Context) {
           returnVector.add(
             PictureInfoBean(
               id = tempId,
-              uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,tempId),
+              uri = ContentUris.withAppendedId(tableUri,tempId),
               path = cursor.getString(dataIndex),
               name = cursor.getString(displayNameIndex),
               mimeType = cursor.getString(mimeTypeIndex),
               size = cursor.getLong(sizeIndex),
-              modifiedTime = cursor.getLong(modifiedIndex)
+              modifiedTime = cursor.getLong(modifiedIndex),
+              addedTime = cursor.getLong(addedIndex)
             )
           )
         }
@@ -153,8 +143,75 @@ class PictureSdCardUtil(private val context: Context) {
         cursor.close();
       }
     }
-
-
     return returnVector
+  }
+
+
+  /**
+   *  检查目录并创建默认图
+   */
+  fun checkFileDir(): File {
+    val baseDir = File(getFileDirPath())
+    if (!baseDir.exists()) {
+      // 目录不存在 则创建
+      baseDir.mkdirs()
+      createDefaultFile()
+    }
+    return baseDir
+  }
+
+  /**
+   * 获取所有图片
+   */
+  fun getAllPicture() = getPathUri(MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+
+  /**
+   * 获取所有视频
+   */
+  fun getAllVideo() = getPathUri(MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+
+
+  /**
+   * 获取 inputStream
+   * @param imgUri 图片 Uri
+   */
+  fun getInputStream(imgUri: Uri) : InputStream? {
+    return try {
+      context.contentResolver.openInputStream(imgUri)
+    }catch (e : Exception){
+      Logger.e(TAG,"获取 inputStream 异常 : ${e.message}")
+      null
+    }
+  }
+
+  /**
+   * 获取 outputStream
+   * @param pictureInfoBean 图片信息bean
+   * @param newImageName 需要的新名字
+   */
+  fun getOutputStream(pictureInfoBean: PictureInfoBean, newImageName: String = "") : OutputStream? {
+    return try {
+      val contentUri =
+        if (pictureInfoBean.mimeType.startsWith(
+            "video",
+            true
+          )
+        ) MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        else MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+      val contentValues = ContentValues().apply {
+        put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
+        put(MediaStore.Images.Media.IS_PRIVATE, 1)
+        put(MediaStore.Images.Media.DISPLAY_NAME, newImageName.ifEmpty { pictureInfoBean.name })
+        put(MediaStore.Images.Media.MIME_TYPE, pictureInfoBean.mimeType)
+        put(MediaStore.Images.Media.RELATIVE_PATH, "$DIRECTORY_PICTURES/$PICTURE_FILE_DIR_NAME")
+        put(MediaStore.Images.Media.DATE_ADDED, pictureInfoBean.addedTime);
+        put(MediaStore.Images.Media.DATE_MODIFIED, pictureInfoBean.modifiedTime);
+      }
+      val insert = context.contentResolver.insert(contentUri, contentValues);
+      return insert?.let { context.contentResolver.openOutputStream(it) }
+    }catch (e : Exception){
+      Logger.e(TAG,"获取 outputStream 异常 : ${e.message}")
+      null
+    }
   }
 }

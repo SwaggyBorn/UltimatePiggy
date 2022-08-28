@@ -40,8 +40,8 @@ class SexyPiggyMainActivity : BaseActivity() {
         finish()
       }else{
         //有权限了就建立相册并创建默认图
-          Logger.e("xxxxxxxxx","fgefwefewfew")
         PictureSdCardUtil(this).checkFileDir()
+        mViewModel.startEncryption(true)
       }
     }
   }

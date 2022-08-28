@@ -10,6 +10,7 @@ data class PictureInfoBean(
   var path : String,
   var mimeType : String,
   var size : Long,
-  var modifiedTime : Long
+  var modifiedTime : Long,
+  var addedTime : Long
 
 ) : Serializable
