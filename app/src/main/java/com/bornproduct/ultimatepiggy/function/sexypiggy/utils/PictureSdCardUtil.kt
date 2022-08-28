@@ -43,7 +43,7 @@ class PictureSdCardUtil(private val context: Context = MainApplication.getContex
    * @param fileNameArray 图片文件名数组(Environment.getExternalStoragePublicDirectory下)
    * @param scanListener 刷新回调
    */
-  private fun notifyPictureRefresh(
+  fun notifyPictureRefresh(
     fileNameArray: Array<String>,
     scanListener: (path: String?, uri: Uri?) -> Unit = { _, _ -> }
   ) {
@@ -97,12 +97,13 @@ class PictureSdCardUtil(private val context: Context = MainApplication.getContex
       MediaStore.Video.Media.SIZE,
       MediaStore.Video.Media.DATE_ADDED,
       MediaStore.Video.Media.DATE_MODIFIED,
+      MediaStore.Video.Media.DATE_TAKEN,
     )
     val selection = MediaStore.Images.Media.BUCKET_DISPLAY_NAME + "= ?";
     //条件参数
     val args = arrayOf(PICTURE_FILE_DIR_NAME)
     //排序：按id倒叙
-    val order = MediaStore.Files.FileColumns._ID + " DESC"
+    val order = MediaStore.Files.FileColumns.DATE_MODIFIED + " DESC"
     //开始查询
     context.contentResolver.query(tableUri, projection, selection, args, order)?.let {cursor ->
       try {
@@ -120,6 +121,8 @@ class PictureSdCardUtil(private val context: Context = MainApplication.getContex
         val modifiedIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED)
         //获取文件添加的时间index
         val addedIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
+        //获取文件拍摄的时间index
+        val dateTakenIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_TAKEN)
 
         //循环遍历
         while (cursor.moveToNext()) {
@@ -133,7 +136,8 @@ class PictureSdCardUtil(private val context: Context = MainApplication.getContex
               mimeType = cursor.getString(mimeTypeIndex),
               size = cursor.getLong(sizeIndex),
               modifiedTime = cursor.getLong(modifiedIndex),
-              addedTime = cursor.getLong(addedIndex)
+              addedTime = cursor.getLong(addedIndex),
+              dateTaken = cursor.getLong(dateTakenIndex)
             )
           )
         }
@@ -199,19 +203,34 @@ class PictureSdCardUtil(private val context: Context = MainApplication.getContex
         ) MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
         else MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
       val contentValues = ContentValues().apply {
-        put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
         put(MediaStore.Images.Media.IS_PRIVATE, 1)
         put(MediaStore.Images.Media.DISPLAY_NAME, newImageName.ifEmpty { pictureInfoBean.name })
         put(MediaStore.Images.Media.MIME_TYPE, pictureInfoBean.mimeType)
         put(MediaStore.Images.Media.RELATIVE_PATH, "$DIRECTORY_PICTURES/$PICTURE_FILE_DIR_NAME")
-        put(MediaStore.Images.Media.DATE_ADDED, pictureInfoBean.addedTime);
-        put(MediaStore.Images.Media.DATE_MODIFIED, pictureInfoBean.modifiedTime);
+        put(MediaStore.Images.Media.DATE_ADDED, pictureInfoBean.addedTime)
+        put(MediaStore.Images.Media.DATE_MODIFIED, pictureInfoBean.modifiedTime)
+        put(MediaStore.Images.Media.DATE_TAKEN, pictureInfoBean.dateTaken)
       }
       val insert = context.contentResolver.insert(contentUri, contentValues);
       return insert?.let { context.contentResolver.openOutputStream(it) }
     }catch (e : Exception){
       Logger.e(TAG,"获取 outputStream 异常 : ${e.message}")
       null
+    }
+  }
+
+  /**
+   * 通过uri删除文件
+   * @param uri Uri
+   */
+  fun deleteByUri(path: String, uri: Uri) {
+    try {
+      val deleteSuccess = context.contentResolver.delete(uri,null,null)
+      if (deleteSuccess == 1){
+        notifyPictureRefresh(arrayOf(path))
+      }
+    }catch (e : Exception){
+      Logger.e(TAG,"删除资源异常异常 : ${e.message}")
     }
   }
 }

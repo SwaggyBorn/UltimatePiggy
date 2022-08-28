@@ -1,14 +1,17 @@
 package com.bornproduct.ultimatepiggy.function.sexypiggy.main
 
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.bornproduct.ultimatepiggy.basic.log.Logger
 import com.bornproduct.ultimatepiggy.basic.viewmodel.BaseViewModel
+import com.bornproduct.ultimatepiggy.function.sexypiggy.bean.PictureDealBean
 import com.bornproduct.ultimatepiggy.function.sexypiggy.bean.PictureInfoBean
 import com.bornproduct.ultimatepiggy.function.sexypiggy.utils.AESUtil
 import com.bornproduct.ultimatepiggy.function.sexypiggy.utils.AESUtil.AesMode
 import com.bornproduct.ultimatepiggy.function.sexypiggy.utils.AESUtil.AesMode.DECRYPTION
 import com.bornproduct.ultimatepiggy.function.sexypiggy.utils.AESUtil.AesMode.ENCRYPTION
 import com.bornproduct.ultimatepiggy.function.sexypiggy.utils.PictureSdCardUtil
+import com.bornproduct.ultimatepiggy.utils.DataTransformUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -17,6 +20,10 @@ class SexyPiggyMainViewModel: BaseViewModel() {
 
   companion object{
     private const val HIDE_KEY_NAME = "PIGGY"
+  }
+
+  private val dealingBean : MutableLiveData<PictureDealBean> by lazy {
+    MutableLiveData<PictureDealBean>()
   }
 
   private val sdCardUtil by lazy {
@@ -51,8 +58,33 @@ class SexyPiggyMainViewModel: BaseViewModel() {
       }
 
       Logger.d(getTag(), "搜索需${if (isEncryption) "加密" else "解密"}的图片视频共 ${allInfoList.size} 个")
-      allInfoList.forEach {
-        encryptionPerPicture(if (isEncryption) ENCRYPTION else DECRYPTION,it)
+      dealingBean.value = PictureDealBean()
+      dealingBean.value?.apply {
+        total = allInfoList.size
+        startTime = System.currentTimeMillis()
+        allInfoList.forEach{
+          totalSize += it.size
+        }
+      }
+      allInfoList.forEach { pictureInfoBean ->
+        encryptionPerPicture(
+          if (isEncryption) ENCRYPTION else DECRYPTION,
+          pictureInfoBean
+        ) { isSuccess ->
+          dealingBean.value?.apply {
+            val notTime = System.currentTimeMillis()
+            duration = if (notTime > startTime){
+              notTime - startTime
+            }else{
+              duration
+            }
+            current = dealingBean.value?.current!! + 1
+            if (isSuccess){
+              sdCardUtil.deleteByUri(pictureInfoBean.path,pictureInfoBean.uri)
+            }
+            Logger.d(getTag(), "目前进度： $current / $total   目前时长：${DataTransformUtil.timeMillsToDuration(duration)}")
+          }
+        }
       }
     }
   }
@@ -63,32 +95,39 @@ class SexyPiggyMainViewModel: BaseViewModel() {
    * @param mode 加密/解密
    * @param pictureInfoBean 图片信息infoBean
    */
-  private suspend fun encryptionPerPicture(mode: AesMode, pictureInfoBean: PictureInfoBean) {
-    Logger.e("xxxxxxxxxsfee",pictureInfoBean.name)
+  private suspend fun encryptionPerPicture(
+    mode: AesMode,
+    pictureInfoBean: PictureInfoBean,
+    refreshListener: (Boolean) -> Unit
+  ) {
     withContext(Dispatchers.IO) {
       //输入流
       val inputStream = sdCardUtil.getInputStream(pictureInfoBean.uri)
       //模式
-      when(mode){
+      when (mode) {
         ENCRYPTION -> {
           val outputStream = sdCardUtil.getOutputStream(
             pictureInfoBean, StringBuilder(pictureInfoBean.name).append(
               HIDE_KEY_NAME
             ).toString()
           )
-          if(inputStream != null && outputStream != null) {
-            AESUtil.encrypt(ENCRYPTION,inputStream,outputStream)
+          if (inputStream != null && outputStream != null) {
+            refreshListener(AESUtil.encrypt(ENCRYPTION, inputStream, outputStream))
+          }else{
+            refreshListener(false)
           }
         }
 
-        DECRYPTION ->{
+        DECRYPTION -> {
           val outputStream = sdCardUtil.getOutputStream(
             pictureInfoBean, StringBuilder(pictureInfoBean.name).toString().replace(
-              HIDE_KEY_NAME,""
+              HIDE_KEY_NAME, ""
             )
           )
-          if(inputStream != null && outputStream != null) {
-            AESUtil.encrypt(DECRYPTION,inputStream,outputStream)
+          if (inputStream != null && outputStream != null) {
+            refreshListener(AESUtil.encrypt(DECRYPTION, inputStream, outputStream))
+          }else{
+            refreshListener(false)
           }
         }
       }
